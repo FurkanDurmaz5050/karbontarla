@@ -51,14 +51,14 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-500">Karbon kredi özetiniz ve tarla durumunuz</p>
+          <p className="text-gray-500 text-sm">Karbon kredi özetiniz ve tarla durumunuz</p>
         </div>
         <button
           onClick={() => navigate("/fields")}
-          className="bg-karbon-600 hover:bg-karbon-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+          className="bg-karbon-600 hover:bg-karbon-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           Tarla Ekle

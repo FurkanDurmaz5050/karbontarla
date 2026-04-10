@@ -1,4 +1,5 @@
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../App";
 import {
   LayoutDashboard,
@@ -8,6 +9,8 @@ import {
   ShoppingCart,
   LogOut,
   Sprout,
+  Menu,
+  X,
 } from "lucide-react";
 
 const navItems = [
@@ -21,17 +24,35 @@ const navItems = [
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
+  const currentLabel = navItems.find(
+    (item) => item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
+  )?.label || "KarbonTarla";
+
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-karbon-700 text-white flex flex-col">
-        <div className="p-6 border-b border-karbon-600">
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-karbon-700 text-white flex flex-col transform transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="p-6 border-b border-karbon-600 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Sprout className="w-8 h-8 text-karbon-300" />
             <div>
@@ -39,6 +60,12 @@ export default function Layout() {
               <p className="text-xs text-karbon-300">Tarladan, Karbon Borsasına</p>
             </div>
           </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1 text-karbon-300 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -47,6 +74,7 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               end={item.to === "/"}
+              onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors ${
                   isActive
@@ -82,8 +110,21 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">
+      <main className="flex-1 overflow-auto w-full">
+        {/* Mobile header */}
+        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 lg:hidden">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-1.5 rounded-lg hover:bg-gray-100"
+          >
+            <Menu className="w-5 h-5 text-gray-700" />
+          </button>
+          <div className="flex items-center gap-2">
+            <Sprout className="w-5 h-5 text-karbon-600" />
+            <span className="font-semibold text-gray-800">{currentLabel}</span>
+          </div>
+        </div>
+        <div className="p-4 md:p-6">
           <Outlet />
         </div>
       </main>

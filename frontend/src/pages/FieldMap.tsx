@@ -117,14 +117,14 @@ export default function FieldMap() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Tarlalarım</h1>
-          <p className="text-gray-500">Tarla yönetimi ve uydu analizi</p>
+          <p className="text-gray-500 text-sm">Tarla yönetimi ve uydu analizi</p>
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setDrawMode(!showForm); setDrawPoints([]); setSelectedField(null); }}
-          className="bg-karbon-600 hover:bg-karbon-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium"
+          className="bg-karbon-600 hover:bg-karbon-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium w-full sm:w-auto"
         >
           {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           {showForm ? "İptal" : "Yeni Tarla"}
@@ -171,8 +171,8 @@ export default function FieldMap() {
                 <option value="composting">Kompostlama</option>
               </select>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-sm text-gray-500">
                   Seçilen köşe: <span className="font-bold text-karbon-700">{drawPoints.length}</span>
                   {drawPoints.length < 3 && <span className="text-orange-500 ml-1">(en az 3 gerekli)</span>}
@@ -183,9 +183,9 @@ export default function FieldMap() {
                   </button>
                 )}
               </div>
-              <div className="flex gap-2">
-                <button type="submit" disabled={drawPoints.length < 3} className="bg-karbon-600 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-40">Kaydet</button>
-                <button type="button" onClick={() => { setShowForm(false); setDrawMode(false); setDrawPoints([]); }} className="bg-gray-200 px-4 py-2 rounded-lg">İptal</button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button type="submit" disabled={drawPoints.length < 3} className="bg-karbon-600 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-40 flex-1 sm:flex-none">Kaydet</button>
+                <button type="button" onClick={() => { setShowForm(false); setDrawMode(false); setDrawPoints([]); }} className="bg-gray-200 px-4 py-2 rounded-lg flex-1 sm:flex-none">İptal</button>
               </div>
             </div>
           </form>
@@ -241,7 +241,7 @@ export default function FieldMap() {
 
         {/* Map and NDVI */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 h-[400px]">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 h-[300px] md:h-[400px]">
             <NDVIMap
               fieldPolygon={selectedField?.geometry_geojson}
               ndviValue={ndviData?.stats?.mean_ndvi}
@@ -254,7 +254,7 @@ export default function FieldMap() {
           {ndviData && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <h3 className="font-semibold text-gray-800 mb-3">NDVI Analizi — {selectedField?.name}</h3>
-              <div className="grid grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   <p className="text-2xl font-bold text-karbon-600">{ndviData.stats.mean_ndvi?.toFixed(3)}</p>
                   <p className="text-xs text-gray-500">Ortalama NDVI</p>

@@ -138,7 +138,7 @@ export default function CarbonReport() {
       {/* Controls */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div className="flex flex-wrap gap-4 items-end">
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="block text-sm font-medium text-gray-600 mb-1">Tarla</label>
             <select
               value={selectedField}
@@ -146,7 +146,7 @@ export default function CarbonReport() {
                 setSelectedField(e.target.value);
                 loadFieldReports(e.target.value);
               }}
-              className="px-3 py-2 border rounded-lg min-w-[200px]"
+              className="px-3 py-2 border rounded-lg w-full sm:min-w-[200px]"
             >
               {fields.map((f) => (
                 <option key={f.id} value={f.id}>

@@ -122,23 +122,23 @@ export default function Marketplace() {
           {/* Filter */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <div className="flex flex-wrap gap-3 items-end">
-              <div>
+              <div className="flex-1 min-w-[100px]">
                 <label className="block text-xs text-gray-500 mb-1">Min Fiyat ($/ton)</label>
                 <input
                   type="number"
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
-                  className="px-3 py-2 border rounded-lg w-28 text-sm"
+                  className="px-3 py-2 border rounded-lg w-full text-sm"
                   placeholder="0"
                 />
               </div>
-              <div>
+              <div className="flex-1 min-w-[100px]">
                 <label className="block text-xs text-gray-500 mb-1">Max Fiyat ($/ton)</label>
                 <input
                   type="number"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
-                  className="px-3 py-2 border rounded-lg w-28 text-sm"
+                  className="px-3 py-2 border rounded-lg w-full text-sm"
                   placeholder="100"
                 />
               </div>
