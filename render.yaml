@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: karbontarla-api
+    runtime: python
+    plan: free
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "https://karbontarla.vercel.app,https://karbontarla-frontend.vercel.app"
+      - key: DATABASE_URL
+        value: "sqlite+aiosqlite:///./karbontarla.db"
+      - key: PYTHON_VERSION
+        value: "3.11"

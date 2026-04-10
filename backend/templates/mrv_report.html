@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>KarbonTarla MRV Raporu — {{ report_id }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+            color: #2d3436;
+            font-size: 11pt;
+            line-height: 1.6;
+        }
+
+        @page {
+            size: A4;
+            margin: 2.5cm;
+            @top-center {
+                content: "KarbonTarla MRV Raporu — {{ report_id }}";
+                font-size: 8pt;
+                color: #888;
+            }
+            @bottom-center {
+                content: "Sayfa " counter(page) " / " counter(pages);
+                font-size: 8pt;
+                color: #888;
+            }
+        }
+
+        .cover-page {
+            page-break-after: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 85vh;
+            text-align: center;
+        }
+
+        .cover-logo {
+            font-size: 42pt;
+            font-weight: 700;
+            color: #1B4332;
+            margin-bottom: 10px;
+        }
+
+        .cover-subtitle {
+            font-size: 14pt;
+            color: #52796F;
+            margin-bottom: 40px;
+        }
+
+        .cover-title {
+            font-size: 22pt;
+            font-weight: 700;
+            color: #1B4332;
+            margin-bottom: 10px;
+        }
+
+        .cover-info {
+            font-size: 12pt;
+            color: #555;
+            margin: 5px 0;
+        }
+
+        .cover-badge {
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: #D8F3DC;
+            border: 2px solid #52796F;
+            border-radius: 8px;
+            font-size: 11pt;
+            color: #1B4332;
+        }
+
+        h1 {
+            font-size: 18pt;
+            color: #1B4332;
+            border-bottom: 3px solid #52B788;
+            padding-bottom: 8px;
+            margin: 25px 0 15px 0;
+        }
+
+        h2 {
+            font-size: 14pt;
+            color: #2D6A4F;
+            margin: 18px 0 10px 0;
+        }
+
+        h3 {
+            font-size: 12pt;
+            color: #40916C;
+            margin: 12px 0 8px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 10pt;
+        }
+
+        th {
+            background: #1B4332;
+            color: white;
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 7px 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        tr:nth-child(even) td {
+            background: #f8f9fa;
+        }
+
+        .summary-box {
+            background: linear-gradient(135deg, #D8F3DC, #B7E4C7);
+            border-left: 5px solid #2D6A4F;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .summary-box .big-number {
+            font-size: 28pt;
+            font-weight: 700;
+            color: #1B4332;
+        }
+
+        .summary-box .label {
+            font-size: 10pt;
+            color: #52796F;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .warning-box {
+            background: #FFF3CD;
+            border-left: 5px solid #FFC107;
+            padding: 12px 18px;
+            margin: 12px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 10pt;
+        }
+
+        .chart-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .ndvi-table td:last-child {
+            font-weight: 600;
+        }
+
+        .declaration {
+            background: #f8f9fa;
+            border: 2px solid #1B4332;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .declaration p {
+            margin: 8px 0;
+            font-size: 10pt;
+        }
+
+        .signature-line {
+            border-top: 1px solid #333;
+            width: 250px;
+            margin-top: 40px;
+            padding-top: 5px;
+            font-size: 9pt;
+            color: #666;
+        }
+
+        .footer-stamp {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px;
+            background: #1B4332;
+            color: white;
+            border-radius: 8px;
+            font-size: 10pt;
+        }
+
+        .page-break { page-break-before: always; }
+        .no-break { page-break-inside: avoid; }
+
+        .grid-2 {
+            display: flex;
+            gap: 15px;
+        }
+        .grid-2 > div {
+            flex: 1;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 9pt;
+            font-weight: 600;
+        }
+        .badge-green { background: #D8F3DC; color: #1B4332; }
+        .badge-yellow { background: #FFF3CD; color: #856404; }
+        .badge-blue { background: #D0E8FF; color: #084298; }
+    </style>
+</head>
+<body>
+
+    <!-- KAPAK SAYFASI -->
+    <div class="cover-page">
+        <div class="cover-logo">🌱 KarbonTarla</div>
+        <div class="cover-subtitle">Tarladan, Karbon Borsasına</div>
+
+        <div class="cover-title">MRV İzleme Raporu</div>
+        <div class="cover-info"><strong>Rapor No:</strong> {{ report_id }}</div>
+        <div class="cover-info"><strong>Tarla:</strong> {{ field_name }}</div>
+        <div class="cover-info"><strong>Çiftçi:</strong> {{ farmer_name }}</div>
+        <div class="cover-info"><strong>Dönem:</strong> {{ period_start }} — {{ period_end }}</div>
+        <div class="cover-info"><strong>Rapor Türü:</strong> {{ report_type | capitalize }}</div>
+
+        <div class="cover-badge">
+            VM0042 — Improved Agricultural Land Management (IALM)
+        </div>
+
+        <div style="margin-top: 30px; font-size: 9pt; color: #888;">
+            Oluşturulma: {{ generated_at }} | NevCode © {{ year }}
+        </div>
+    </div>
+
+    <!-- YÖNETİCİ ÖZETİ -->
+    <h1>1. Yönetici Özeti</h1>
+
+    <div class="grid-2">
+        <div class="summary-box">
+            {% if calc_report %}
+            <div class="big-number">{{ "%.2f" | format(calc_report.tradeable_tons) }}</div>
+            <div class="label">Satışa Uygun Kredi (ton CO₂e)</div>
+            {% else %}
+            <div class="big-number">—</div>
+            <div class="label">Hesaplama bekleniyor</div>
+            {% endif %}
+        </div>
+        <div class="summary-box">
+            {% if calc_report %}
+            <div class="big-number">${{ "%.2f" | format(calc_report.value.total_usd) }}</div>
+            <div class="label">Tahmini Gelir (USD)</div>
+            {% else %}
+            <div class="big-number">—</div>
+            <div class="label">Hesaplama bekleniyor</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <table>
+        <tr>
+            <th>Parametre</th>
+            <th>Değer</th>
+        </tr>
+        <tr><td>Metodoloji</td><td>Verra VCS VM0042</td></tr>
+        <tr><td>Tarla Alanı</td><td>{{ "%.2f" | format(field_area_ha) }} hektar</td></tr>
+        <tr><td>Toprak Tipi</td><td>{{ soil_type }}</td></tr>
+        <tr><td>Uygulama</td><td>{{ practice }}</td></tr>
+        <tr><td>Ortalama NDVI</td><td>{{ "%.4f" | format(ndvi_mean) }}</td></tr>
+        {% if calc_report %}
+        <tr><td>Net Emisyon Azaltımı</td><td>{{ "%.4f" | format(calc_report.delta_co2_tons) }} ton CO₂e</td></tr>
+        <tr><td>Belirsizlik Kesintisi</td><td>%{{ "%.0f" | format((1 - calc_report.uncertainty_buffer) * 100) }}</td></tr>
+        <tr><td>Kalıcılık Tamponu</td><td>%{{ "%.0f" | format((1 - calc_report.permanence_buffer) * 100) }}</td></tr>
+        {% endif %}
+    </table>
+
+    <!-- PROJE TANIMI -->
+    <h1>2. Proje Tanımı</h1>
+
+    <h2>2.1 Tarla Bilgileri</h2>
+    <table>
+        <tr><td><strong>Tarla Adı</strong></td><td>{{ field_name }}</td></tr>
+        <tr><td><strong>Alan</strong></td><td>{{ "%.4f" | format(field_area_ha) }} ha</td></tr>
+        <tr><td><strong>Toprak Tipi</strong></td><td>{{ soil_type }}</td></tr>
+        <tr><td><strong>Tarımsal Pratik</strong></td><td>{{ practice }}</td></tr>
+    </table>
+
+    <h2>2.2 Çiftçi Bilgileri</h2>
+    <table>
+        <tr><td><strong>Ad Soyad</strong></td><td>{{ farmer_name }}</td></tr>
+        <tr><td><strong>E-posta</strong></td><td>{{ farmer_email }}</td></tr>
+    </table>
+
+    <!-- UYDU ANALİZİ -->
+    <div class="page-break"></div>
+    <h1>3. Uydu Analizi (Sentinel-2)</h1>
+
+    {% if satellite_image_b64 %}
+    <h2>3.1 NDVI Uydu Haritası</h2>
+    <div class="chart-container" style="margin: 20px 0;">
+        <img src="data:image/png;base64,{{ satellite_image_b64 }}" 
+             style="width: 100%; max-width: 500px; border: 2px solid #dee2e6; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+             alt="NDVI Uydu Haritası" />
+        <p style="font-size: 9pt; color: #888; margin-top: 8px;">
+            Sentinel-2A L2A | İşlenme: {{ generated_at }} | Çözünürlük: 10m | Projeksiyon: EPSG:4326
+        </p>
+    </div>
+    {% endif %}
+
+    <h2>3.2 NDVI Zaman Serisi Grafiği</h2>
+    <div class="chart-container">
+        {{ chart_svg | safe }}
+    </div>
+
+    <p>
+        Ortalama NDVI: <strong>{{ "%.4f" | format(ndvi_mean) }}</strong> —
+        {% if ndvi_mean >= 0.6 %}
+        <span class="badge badge-green">Sağlıklı Bitki Örtüsü</span>
+        {% elif ndvi_mean >= 0.4 %}
+        <span class="badge badge-yellow">Orta Yoğunluk</span>
+        {% else %}
+        <span class="badge badge-blue">Düşük Örtü</span>
+        {% endif %}
+    </p>
+
+    <h2>3.3 NDVI Gözlem Tablosu</h2>
+    <table class="ndvi-table no-break">
+        <tr>
+            <th>Tarih</th>
+            <th>NDVI</th>
+            <th>Bulut (%)</th>
+            <th>Durum</th>
+        </tr>
+        {% for obs in ndvi_series[:24] %}
+        <tr>
+            <td>{{ obs.date }}</td>
+            <td>{{ "%.4f" | format(obs.ndvi) }}</td>
+            <td>{{ "%.1f" | format(obs.cloud_cover or 0) }}</td>
+            <td>
+                {% if obs.ndvi >= 0.6 %}Sağlıklı
+                {% elif obs.ndvi >= 0.4 %}Orta
+                {% elif obs.ndvi >= 0.2 %}Stres
+                {% else %}Kritik{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    {% if ndvi_series | length > 24 %}
+    <p style="font-size:9pt; color:#888;">+ {{ ndvi_series | length - 24 }} ek gözlem (tam liste ekte)</p>
+    {% endif %}
+
+    {% if monthly_stats %}
+    <h2>3.4 Aylık NDVI Özeti</h2>
+    <table class="no-break">
+        <tr>
+            <th>Ay</th>
+            <th>Ortalama NDVI</th>
+            <th>Min</th>
+            <th>Max</th>
+            <th>Gözlem</th>
+            <th>Durum</th>
+        </tr>
+        {% for ms in monthly_stats %}
+        <tr>
+            <td>{{ ms.month }}</td>
+            <td><strong>{{ "%.4f" | format(ms.mean) }}</strong></td>
+            <td>{{ "%.4f" | format(ms.min) }}</td>
+            <td>{{ "%.4f" | format(ms.max) }}</td>
+            <td>{{ ms.count }}</td>
+            <td>
+                {% if ms.mean >= 0.6 %}<span class="badge badge-green">Sağlıklı</span>
+                {% elif ms.mean >= 0.4 %}<span class="badge badge-yellow">Orta</span>
+                {% else %}<span class="badge badge-blue">Düşük</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <!-- KARBON HESAPLAMA -->
+    {% if calc_report %}
+    <div class="page-break"></div>
+    <h1>4. Karbon Hesaplaması (VM0042)</h1>
+
+    <h2>4.1 Metodoloji Parametreleri</h2>
+    <table class="no-break">
+        <tr><th>Parametre</th><th>Değer</th><th>Açıklama</th></tr>
+        <tr>
+            <td>SOC_ref</td>
+            <td>{{ "%.1f" | format(calc_report.soc_ref) }} tC/ha</td>
+            <td>IPCC 2019 Tier 1 referans ({{ soil_type }})</td>
+        </tr>
+        <tr>
+            <td>FLU</td>
+            <td>1.00</td>
+            <td>Arazi kullanımı faktörü (tarım)</td>
+        </tr>
+        <tr>
+            <td>FMG</td>
+            <td>{{ "%.2f" | format(calc_report.fmg) }}</td>
+            <td>Toprak işleme faktörü ({{ practice }})</td>
+        </tr>
+        <tr>
+            <td>FI</td>
+            <td>{{ "%.2f" | format(calc_report.fi) }}</td>
+            <td>Organik girdi faktörü ({{ calc_report.organic_input_level }})</td>
+        </tr>
+        <tr>
+            <td>NDVI Düzeltme</td>
+            <td>{{ "%.4f" | format(calc_report.ndvi_correction) }}</td>
+            <td>Uydu bazlı kalibrasyon katsayısı</td>
+        </tr>
+    </table>
+
+    <h2>4.2 Hesaplama Adımları</h2>
+    <table class="no-break">
+        <tr><th>Adım</th><th>Formül</th><th>Sonuç</th></tr>
+        <tr>
+            <td>1. Baseline SOC</td>
+            <td>SOC_ref × FLU × 1.0 × 1.0</td>
+            <td>{{ "%.4f" | format(calc_report.baseline_soc) }} tC/ha</td>
+        </tr>
+        <tr>
+            <td>2. Proje SOC</td>
+            <td>SOC_ref × FLU × FMG × FI</td>
+            <td>{{ "%.4f" | format(calc_report.project_soc) }} tC/ha</td>
+        </tr>
+        <tr>
+            <td>3. Delta SOC</td>
+            <td>(Proje - Baseline) × NDVI_corr</td>
+            <td>{{ "%.4f" | format(calc_report.project_soc - calc_report.baseline_soc) }} tC/ha (ham)</td>
+        </tr>
+        <tr>
+            <td>4. CO₂ Dönüşümü</td>
+            <td>Delta × Alan × 3.667</td>
+            <td>{{ "%.4f" | format(calc_report.delta_co2_tons) }} ton CO₂e</td>
+        </tr>
+        <tr>
+            <td>5. Belirsizlik (%15)</td>
+            <td>× 0.85</td>
+            <td>{{ "%.4f" | format(calc_report.credit_tons) }} ton CO₂e</td>
+        </tr>
+        <tr>
+            <td>6. Kalıcılık (%10)</td>
+            <td>× 0.90</td>
+            <td><strong>{{ "%.4f" | format(calc_report.tradeable_tons) }} ton CO₂e</strong></td>
+        </tr>
+    </table>
+
+    <div class="summary-box">
+        <div class="big-number">{{ "%.2f" | format(calc_report.tradeable_tons) }} ton CO₂e</div>
+        <div class="label">Toplam Verilebilir Karbon Kredisi</div>
+    </div>
+
+    <h2>4.3 Tahmini Gelir</h2>
+    <table>
+        <tr><td>Brüt Gelir (USD)</td><td>${{ "%.2f" | format(calc_report.value.total_usd) }}</td></tr>
+        <tr><td>Platform Komisyonu (%3.5)</td><td>${{ "%.2f" | format(calc_report.value.platform_fee_usd) }}</td></tr>
+        <tr><td>Net Gelir (USD)</td><td><strong>${{ "%.2f" | format(calc_report.value.net_revenue_usd) }}</strong></td></tr>
+        <tr><td>Net Gelir (TRY)</td><td><strong>₺{{ "%.2f" | format(calc_report.value.net_revenue_try) }}</strong></td></tr>
+    </table>
+    {% endif %}
+
+    <!-- DOĞRULAMA BEYANI -->
+    <div class="page-break"></div>
+    <h1>5. Doğrulama Beyanı</h1>
+
+    <div class="declaration">
+        <p><strong>Bu rapor, KarbonTarla AI sistemi tarafından otomatik olarak üretilmiştir.</strong></p>
+        <p>Rapor, Verra VCS VM0042 (Improved Agricultural Land Management) metodolojisine uygun olarak hazırlanmıştır.</p>
+        <p>Uydu verileri ESA Copernicus Sentinel-2 L2A ürünlerinden elde edilmiştir.</p>
+        <p>Tüm hesaplamalar IPCC 2019 Tier 1 referans değerlerine dayanmaktadır.</p>
+
+        <div style="margin-top: 20px;">
+            <p><strong>Rapor No:</strong> {{ report_id }}</p>
+            <p><strong>Oluşturulma Tarihi:</strong> {{ generated_at }}</p>
+            <p><strong>Dönem:</strong> {{ period_start }} — {{ period_end }}</p>
+        </div>
+
+        <div class="signature-line">
+            Çiftçi İmzası — {{ farmer_name }}
+        </div>
+    </div>
+
+    <div class="footer-stamp">
+        <div style="font-size:14pt; font-weight:700;">🌱 KarbonTarla</div>
+        <div>Tarladan, Karbon Borsasına</div>
+        <div style="font-size:8pt; margin-top:5px;">NevCode © {{ year }} — karbontarla.com.tr</div>
+    </div>
+
+</body>
+</html>
