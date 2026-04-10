@@ -33,9 +33,12 @@ class Settings(BaseSettings):
         extra = "allow"
 
     def get_database_url(self) -> str:
+        import os
         url = self.DATABASE_URL
-        if self.ENVIRONMENT == "production" and "sqlite" in url and "/tmp/" not in url:
-            url = "sqlite+aiosqlite:////tmp/karbontarla.db"
+        # Vercel serverless: /var/task/ is read-only, use /tmp/ for SQLite
+        if os.environ.get("VERCEL") or self.ENVIRONMENT == "production":
+            if "sqlite" in url and "/tmp/" not in url:
+                url = "sqlite+aiosqlite:////tmp/karbontarla.db"
         return url
 
 

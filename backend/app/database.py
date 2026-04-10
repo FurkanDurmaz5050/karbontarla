@@ -64,3 +64,61 @@ async def get_db() -> AsyncSession:
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+
+_seeded = False
+
+
+async def ensure_seeded():
+    """Üretimde her cold start'ta demo kullanıcı ve örnek veriyi oluşturur."""
+    global _seeded
+    if _seeded:
+        return
+    _seeded = True
+
+    import os
+    if not (os.environ.get("VERCEL") or settings.ENVIRONMENT == "production"):
+        return
+
+    import bcrypt
+    from sqlalchemy import select
+
+    async with async_session() as session:
+        from app.models.user import User
+        from app.models.farmer import FarmerProfile
+        from app.models.field import Field
+
+        result = await session.execute(select(User).where(User.email == "demo@karbontarla.com"))
+        if result.scalar_one_or_none():
+            return
+
+        pw_hash = bcrypt.hashpw(b"Demo1234!", bcrypt.gensalt()).decode("utf-8")
+        user = User(
+            email="demo@karbontarla.com",
+            password_hash=pw_hash,
+            full_name="Demo Çiftçi",
+            role="FARMER",
+        )
+        session.add(user)
+        await session.flush()
+
+        profile = FarmerProfile(
+            user_id=user.id,
+            il="Konya",
+            ilce="Çumra",
+            toplam_arazi_ha=45.0,
+        )
+        session.add(profile)
+        await session.flush()
+
+        field = Field(
+            farmer_id=profile.id,
+            name="Çumra Buğday Tarlası",
+            area_ha=15.0,
+            soil_type="Killi",
+            current_practice="no_till",
+            geometry='{"type":"Polygon","coordinates":[[[32.75,37.57],[32.77,37.57],[32.77,37.59],[32.75,37.59],[32.75,37.57]]]}',
+            status="active",
+        )
+        session.add(field)
+        await session.commit()
