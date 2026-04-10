@@ -33,7 +33,10 @@ class Settings(BaseSettings):
         extra = "allow"
 
     def get_database_url(self) -> str:
-        return self.DATABASE_URL
+        url = self.DATABASE_URL
+        if self.ENVIRONMENT == "production" and "sqlite" in url and "/tmp/" not in url:
+            url = "sqlite+aiosqlite:////tmp/karbontarla.db"
+        return url
 
 
 @lru_cache()

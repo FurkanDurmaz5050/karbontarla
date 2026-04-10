@@ -17,7 +17,10 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    os.makedirs(settings.PDF_OUTPUT_DIR, exist_ok=True)
+    pdf_dir = settings.PDF_OUTPUT_DIR
+    if settings.ENVIRONMENT == "production":
+        pdf_dir = "/tmp/reports"
+    os.makedirs(pdf_dir, exist_ok=True)
     yield
 
 
