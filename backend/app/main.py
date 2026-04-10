@@ -20,17 +20,23 @@ logger = logging.getLogger("karbontarla")
 _initialized = False
 
 
+async def _startup():
+    global _initialized
+    if _initialized:
+        return
+    await init_db()
+    await ensure_seeded()
+    pdf_dir = settings.PDF_OUTPUT_DIR
+    if settings.ENVIRONMENT == "production":
+        pdf_dir = "/tmp/reports"
+    os.makedirs(pdf_dir, exist_ok=True)
+    _initialized = True
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _initialized
     try:
-        await init_db()
-        await ensure_seeded()
-        pdf_dir = settings.PDF_OUTPUT_DIR
-        if settings.ENVIRONMENT == "production":
-            pdf_dir = "/tmp/reports"
-        os.makedirs(pdf_dir, exist_ok=True)
-        _initialized = True
+        await _startup()
     except Exception as e:
         logger.error(f"Lifespan init error: {e}")
     yield
@@ -47,13 +53,10 @@ app = FastAPI(
 @app.middleware("http")
 async def ensure_db_initialized(request: Request, call_next):
     """Vercel serverless lifespan desteği yoksa, ilk istekte DB'yi başlat."""
-    global _initialized
-    if not _initialized:
-        await init_db()
-        await ensure_seeded()
-        pdf_dir = "/tmp/reports" if settings.ENVIRONMENT == "production" else settings.PDF_OUTPUT_DIR
-        os.makedirs(pdf_dir, exist_ok=True)
-        _initialized = True
+    try:
+        await _startup()
+    except Exception as e:
+        logger.error(f"Middleware init error: {e}")
     return await call_next(request)
 
 

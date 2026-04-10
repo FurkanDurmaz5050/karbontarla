@@ -10,22 +10,32 @@ from app.config import get_settings
 
 
 class UUID(TypeDecorator):
-    """SQLite uyumlu UUID tipi — String(36) olarak saklar."""
+    """Hem SQLite (String) hem PostgreSQL (native UUID) ile çalışır."""
     impl = String(36)
     cache_ok = True
 
     def __init__(self, as_uuid=True):
         super().__init__()
 
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+            return dialect.type_descriptor(PG_UUID(as_uuid=True))
+        return dialect.type_descriptor(String(36))
+
     def process_bind_param(self, value, dialect):
-        if value is not None:
-            return str(value)
-        return value
+        if value is None:
+            return value
+        if dialect.name == "postgresql":
+            return value if isinstance(value, uuid_module.UUID) else uuid_module.UUID(str(value))
+        return str(value)
 
     def process_result_value(self, value, dialect):
-        if value is not None:
-            return uuid_module.UUID(value)
-        return value
+        if value is None:
+            return value
+        if dialect.name == "postgresql":
+            return value if isinstance(value, uuid_module.UUID) else uuid_module.UUID(str(value))
+        return uuid_module.UUID(value) if not isinstance(value, uuid_module.UUID) else value
 
 
 settings = get_settings()
@@ -37,8 +47,10 @@ _engine_kwargs = {
 if "sqlite" in _db_url:
     _engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
-    _engine_kwargs["pool_size"] = 20
+    _engine_kwargs["pool_size"] = 5
     _engine_kwargs["max_overflow"] = 10
+    _engine_kwargs["pool_pre_ping"] = True
+    _engine_kwargs["pool_recycle"] = 300
 
 engine = create_async_engine(_db_url, **_engine_kwargs)
 
@@ -66,20 +78,8 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
 
 
-_seeded = False
-
-
 async def ensure_seeded():
-    """Üretimde her cold start'ta demo kullanıcı ve örnek veriyi oluşturur."""
-    global _seeded
-    if _seeded:
-        return
-    _seeded = True
-
-    import os
-    if not (os.environ.get("VERCEL") or settings.ENVIRONMENT == "production"):
-        return
-
+    """Demo kullanıcı yoksa oluşturur (persistent DB — sadece ilk seferde)."""
     import bcrypt
     from sqlalchemy import select
 

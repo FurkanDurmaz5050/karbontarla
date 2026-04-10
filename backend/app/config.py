@@ -7,7 +7,7 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # Veritabanı (varsayılan: SQLite lokal)
+    # Veritabanı (varsayılan: SQLite lokal, production: PostgreSQL)
     DATABASE_URL: str = "sqlite+aiosqlite:///./karbontarla.db"
 
     # JWT
@@ -33,12 +33,15 @@ class Settings(BaseSettings):
         extra = "allow"
 
     def get_database_url(self) -> str:
-        import os
         url = self.DATABASE_URL
-        # Vercel serverless: /var/task/ is read-only, use /tmp/ for SQLite
-        if os.environ.get("VERCEL") or self.ENVIRONMENT == "production":
-            if "sqlite" in url and "/tmp/" not in url:
-                url = "sqlite+aiosqlite:////tmp/karbontarla.db"
+        # PostgreSQL URL'ini asyncpg formatına çevir
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://") and "+asyncpg" not in url:
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        # asyncpg sslmode değil ssl kullanır
+        if "asyncpg" in url and "sslmode=" in url:
+            url = url.replace("sslmode=", "ssl=")
         return url
 
 
