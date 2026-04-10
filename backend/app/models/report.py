@@ -3,7 +3,7 @@ from typing import Optional
 
 import uuid
 from datetime import datetime, date
-from sqlalchemy import String, Date, DateTime, ForeignKey, func
+from sqlalchemy import String, Date, DateTime, ForeignKey, LargeBinary, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base, UUID
 
@@ -24,6 +24,7 @@ class MRVReport(Base):
     period_start: Mapped[Optional[date]] = mapped_column(Date)
     period_end: Mapped[Optional[date]] = mapped_column(Date)
     pdf_path: Mapped[Optional[str]] = mapped_column(String(500))
+    pdf_data: Mapped[Optional[bytes]] = mapped_column(LargeBinary)
     generated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

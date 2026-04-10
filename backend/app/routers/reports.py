@@ -40,7 +40,7 @@ async def generate_report(
         )
         credit = credit_result.scalar_one_or_none()
 
-    pdf_path = pdf_generator.generate_mrv_pdf(
+    report_id, pdf_bytes = pdf_generator.generate_mrv_pdf(
         field=field,
         credit=credit,
         user=current_user,
@@ -55,7 +55,8 @@ async def generate_report(
         report_type=data.report_type,
         period_start=data.period_start,
         period_end=data.period_end,
-        pdf_path=pdf_path,
+        pdf_path=report_id,
+        pdf_data=pdf_bytes,
         generated_by=current_user.id,
     )
     db.add(report)
@@ -87,20 +88,15 @@ async def download_report(
     if not report:
         raise HTTPException(status_code=404, detail="Rapor bulunamadı")
 
-    if not report.pdf_path:
-        raise HTTPException(status_code=404, detail="PDF dosyası bulunamadı")
+    if not report.pdf_data:
+        raise HTTPException(status_code=404, detail="PDF verisi bulunamadı")
 
-    try:
-        with open(report.pdf_path, "rb") as f:
-            pdf_bytes = f.read()
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="PDF dosyası sunucuda bulunamadı")
-
+    filename = report.pdf_path or f"MRV_Report_{report_id}"
     return Response(
-        content=pdf_bytes,
+        content=report.pdf_data,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="MRV_Report_{report_id}.pdf"'
+            "Content-Disposition": f'attachment; filename="{filename}.pdf"'
         },
     )
 

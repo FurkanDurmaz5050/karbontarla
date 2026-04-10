@@ -17,33 +17,31 @@ from app.config import get_settings
 
 settings = get_settings()
 
-
 # ---------------------------------------------------------------------------
-# Turkce karakter destekli PDF sinifi
+# Bundled DejaVu Sans font — Turkce karakter destekli, her platformda calisir
 # ---------------------------------------------------------------------------
 
-_FONT_NAME = "uni"  # dahili referans adi
+_FONT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "fonts")
+_FONT_NAME = "dejavu"
 
 
 def _register_unicode_font(pdf: FPDF):
-    """Turkce karakter destekli Unicode TTF fontu yukler."""
-    candidates = [
-        "/Library/Fonts/Arial Unicode.ttf",
-        "/System/Library/Fonts/Helvetica.ttc",
-        "/System/Library/Fonts/Geneva.ttf",
-    ]
-    for path in candidates:
-        if os.path.exists(path):
-            try:
-                pdf.add_font(_FONT_NAME, "", path, uni=True)
-                pdf.add_font(_FONT_NAME, "B", path, uni=True)
-                pdf.add_font(_FONT_NAME, "I", path, uni=True)
-                pdf.add_font(_FONT_NAME, "BI", path, uni=True)
-                return
-            except Exception:
-                continue
-    # Fallback: Helvetica (Turkce karaktersiz)
-    pass
+    """Bundled DejaVu Sans fontu yukler (Turkce karakter destekli)."""
+    regular = os.path.join(_FONT_DIR, "DejaVuSans.ttf")
+    bold = os.path.join(_FONT_DIR, "DejaVuSans-Bold.ttf")
+    if os.path.exists(regular):
+        try:
+            pdf.add_font(_FONT_NAME, "", regular, uni=True)
+            pdf.add_font(_FONT_NAME, "I", regular, uni=True)
+            if os.path.exists(bold):
+                pdf.add_font(_FONT_NAME, "B", bold, uni=True)
+                pdf.add_font(_FONT_NAME, "BI", bold, uni=True)
+            else:
+                pdf.add_font(_FONT_NAME, "B", regular, uni=True)
+                pdf.add_font(_FONT_NAME, "BI", regular, uni=True)
+            return
+        except Exception:
+            pass
 
 
 class _TurkishPDF(FPDF):
@@ -90,7 +88,8 @@ class PDFGenerator:
         report_type: str,
         period_start: date,
         period_end: date,
-    ) -> str:
+    ) -> tuple[str, bytes]:
+        """PDF üretir, (report_id, pdf_bytes) tuple döner."""
         report_id = f"KT-{period_start.year}-{uuid.uuid4().hex[:8].upper()}"
 
         from app.services.carbon_engine import CarbonEngine
@@ -413,11 +412,9 @@ class PDFGenerator:
         pdf.cell(90, 4, "Platform Imzasi")
         pdf.cell(90, 4, "Ciftci Onay", align="R")
 
-        # Kaydet
-        os.makedirs(settings.PDF_OUTPUT_DIR, exist_ok=True)
-        pdf_path = os.path.join(settings.PDF_OUTPUT_DIR, f"{report_id}.pdf")
-        pdf.output(pdf_path)
-        return pdf_path
+        # BytesIO'ya kaydet (dosya sisteme bagimsiz)
+        pdf_bytes = pdf.output()
+        return report_id, bytes(pdf_bytes)
 
     # ------------------------------------------------------------------
     # Yardimci metodlar
@@ -460,29 +457,20 @@ class PDFGenerator:
     # ------------------------------------------------------------------
 
     def _generate_satellite_ndvi_image(self, geometry: dict, mean_ndvi: float, soil_type: str) -> str:
-        """Gercekci NDVI uydu haritasi PNG uretir, gecici dosya yolu doner."""
-        width, height = 640, 480
+        """Hızlı NDVI uydu haritası üretir — band-level ops ile."""
+        width, height = 320, 240
         img = Image.new("RGB", (width, height), (20, 30, 50))
-
-        # Numpy-style olmadan hizli piksel uretimi — satir bazli
-        pixels = img.load()
-        random.seed(42)  # tekrarlanabilir
-        for y in range(height):
-            for x in range(width):
-                nx = x / width
-                ny = y / height
-                noise = (
-                    math.sin(nx * 12.5 + ny * 7.3) * 0.3
-                    + math.sin(nx * 25.1 - ny * 15.7) * 0.15
-                    + math.sin(nx * 50.3 + ny * 33.1) * 0.08
-                    + random.gauss(0, 0.03)
-                )
-                bg_ndvi = 0.15 + noise * 0.1
-                pixels[x, y] = self._ndvi_to_rgb(bg_ndvi)
-
         draw = ImageDraw.Draw(img)
 
-        # Tarla poligonu
+        # Hızlı arka plan: yatay gradient (koyu yeşil → kahverengi)
+        for y in range(height):
+            ratio = y / height
+            r = int(30 + ratio * 60)
+            g = int(60 + (1 - abs(ratio - 0.5) * 2) * 40)
+            b = int(30 + ratio * 20)
+            draw.line([(0, y), (width, y)], fill=(r, g, b))
+
+        # Tarla poligonu — NDVI renginde
         if geometry and "coordinates" in geometry:
             coords = geometry["coordinates"][0]
             if len(coords) >= 3:
@@ -501,61 +489,54 @@ class PDFGenerator:
                 lat_range = max_lat - min_lat
 
                 def to_px(lon, lat):
-                    px = int(50 + (lon - min_lon) / lon_range * (width - 120))
-                    py = int(50 + (1 - (lat - min_lat) / lat_range) * (height - 100))
+                    px = int(30 + (lon - min_lon) / lon_range * (width - 90))
+                    py = int(30 + (1 - (lat - min_lat) / lat_range) * (height - 60))
                     return (px, py)
 
                 poly_points = [to_px(c[0], c[1]) for c in coords]
+                field_color = self._ndvi_to_rgb(mean_ndvi)
+                draw.polygon(poly_points, fill=field_color, outline=(255, 255, 0), width=2)
 
-                # Maske olustur
-                mask = Image.new("L", (width, height), 0)
-                ImageDraw.Draw(mask).polygon(poly_points, fill=255)
-                mask_px = mask.load()
-
-                random.seed(123)
-                for y in range(height):
-                    for x in range(width):
-                        if mask_px[x, y] > 0:
-                            nx = x / width
-                            ny = y / height
-                            field_noise = (
-                                math.sin(nx * 18.7 + ny * 11.3) * 0.06
-                                + math.sin(nx * 37.2 - ny * 22.5) * 0.03
-                                + random.gauss(0, 0.02)
-                            )
-                            local_ndvi = max(0.1, min(0.95, mean_ndvi + field_noise))
-                            pixels[x, y] = self._ndvi_to_rgb(local_ndvi)
-
-                draw.polygon(poly_points, outline=(255, 255, 0), width=2)
+                # İç gradient efekti (basit — birkaç küçük polygon)
+                if len(poly_points) >= 3:
+                    center_x = sum(p[0] for p in poly_points) // len(poly_points)
+                    center_y = sum(p[1] for p in poly_points) // len(poly_points)
+                    for offset in [0.03, -0.02, 0.01]:
+                        inner_color = self._ndvi_to_rgb(min(0.95, max(0.1, mean_ndvi + offset)))
+                        shrunk = []
+                        for px, py in poly_points:
+                            sx = int(px + (center_x - px) * 0.3)
+                            sy = int(py + (center_y - py) * 0.3)
+                            shrunk.append((sx, sy))
+                        draw.polygon(shrunk, fill=inner_color)
 
         # Legend
-        legend_x = width - 70
-        legend_y = 40
-        legend_h = 220
+        legend_x = width - 45
+        legend_y = 25
+        legend_h = 140
         for i in range(legend_h):
             ndvi_val = 1.0 - (i / legend_h)
             r, g, b = self._ndvi_to_rgb(ndvi_val)
-            draw.rectangle([legend_x, legend_y + i, legend_x + 22, legend_y + i + 1], fill=(r, g, b))
-        draw.rectangle([legend_x, legend_y, legend_x + 22, legend_y + legend_h], outline=(255, 255, 255))
+            draw.rectangle([legend_x, legend_y + i, legend_x + 15, legend_y + i + 1], fill=(r, g, b))
+        draw.rectangle([legend_x, legend_y, legend_x + 15, legend_y + legend_h], outline=(255, 255, 255))
 
         font = ImageFont.load_default()
-        draw.text((legend_x + 26, legend_y - 2), "1.0", fill=(255, 255, 255), font=font)
-        draw.text((legend_x + 26, legend_y + legend_h // 2 - 5), "0.5", fill=(255, 255, 255), font=font)
-        draw.text((legend_x + 26, legend_y + legend_h - 10), "0.0", fill=(255, 255, 255), font=font)
-        draw.text((legend_x - 2, legend_y - 16), "NDVI", fill=(255, 255, 255), font=font)
+        draw.text((legend_x + 18, legend_y - 2), "1.0", fill=(255, 255, 255), font=font)
+        draw.text((legend_x + 18, legend_y + legend_h // 2 - 5), "0.5", fill=(255, 255, 255), font=font)
+        draw.text((legend_x + 18, legend_y + legend_h - 10), "0.0", fill=(255, 255, 255), font=font)
+        draw.text((legend_x, legend_y - 14), "NDVI", fill=(255, 255, 255), font=font)
 
         # Kuzey oku
-        draw.text((18, 12), "N", fill=(255, 255, 255), font=font)
-        draw.polygon([(18, 28), (23, 18), (28, 28)], fill=(255, 255, 255))
-        draw.line([(23, 28), (23, 45)], fill=(255, 255, 255), width=2)
+        draw.text((12, 8), "N", fill=(255, 255, 255), font=font)
+        draw.polygon([(12, 22), (16, 14), (20, 22)], fill=(255, 255, 255))
+        draw.line([(16, 22), (16, 34)], fill=(255, 255, 255), width=2)
 
         # Alt bilgi
-        draw.text((12, height - 22), f"Sentinel-2A | NDVI Ort: {mean_ndvi:.3f} | {soil_type}", fill=(200, 200, 200), font=font)
+        draw.text((8, height - 18), f"Sentinel-2A | NDVI Ort: {mean_ndvi:.3f} | {soil_type}", fill=(200, 200, 200), font=font)
 
-        # Gecici dosya
         fd, tmp_path = tempfile.mkstemp(suffix=".png")
         os.close(fd)
-        img.save(tmp_path, format="PNG")
+        img.save(tmp_path, format="PNG", optimize=True)
         return tmp_path
 
     # ------------------------------------------------------------------
